@@ -81,7 +81,6 @@ const DEFAULT_CONTENT = {
       { label: "Dribbble", href: "#" },
     ],
   },
-  adminPassword: "admin123",
 };
 
 // Load content from file or use default
@@ -143,9 +142,11 @@ app.put('/api/content', requireAuth, async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { password } = req.body;
-    const content = await loadContent();
     
-    if (password === content.adminPassword) {
+    // Use environment variable or default secure password
+    const VALID_PASSWORD = process.env.ADMIN_PASSWORD || 'wootong1230@ae';
+    
+    if (password === VALID_PASSWORD) {
       const token = crypto.randomUUID();
       sessions.set(token, { authenticated: true, expires: Date.now() + 24 * 60 * 60 * 1000 });
       res.json({ token, success: true });
