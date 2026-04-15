@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef, createContext, useContext, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ContentProvider, useContent, useAuth } from "./context/ContentContext";
+import { SEO } from "./components/SEO";
+import { Arrow, Reveal, useReveal, sanitize, LoadingSpinner, Button, Card, Section, Container } from "./components/Shared";
 
 /* ═══════════════════════════════════════════════════════════════
    PALETTE
@@ -78,81 +81,15 @@ const DEFAULT_CONTENT = {
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   CONTENT CONTEXT  (localStorage — works in production)
+   CONTENT CONTEXT  (Now uses API with localStorage fallback)
    ═══════════════════════════════════════════════════════════════ */
-const ContentCtx = createContext(null);
-
-function ContentProvider({ children }) {
-  const [content, setContent] = useState(DEFAULT_CONTENT);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("site-content");
-      if (raw) setContent(JSON.parse(raw));
-    } catch {}
-    setLoaded(true);
-  }, []);
-
-  const save = useCallback((next) => {
-    setContent(next);
-    try { localStorage.setItem("site-content", JSON.stringify(next)); } catch {}
-  }, []);
-
-  if (!loaded) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", background: C.bg }}>
-      <div style={{ width:24, height:24, border:`3px solid ${C.border}`, borderTopColor: C.primary, borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-
-  return <ContentCtx.Provider value={{ content, save }}>{children}</ContentCtx.Provider>;
-}
-
-function useContent() { return useContext(ContentCtx); }
-
-/* ═══════════════════════════════════════════════════════════════
-   SECURITY: sanitize text to prevent XSS
-   ═══════════════════════════════════════════════════════════════ */
-function sanitize(str) {
-  if (typeof str !== "string") return str;
-  const el = document.createElement("div");
-  el.textContent = str;
-  return el.innerHTML;
-}
+// ContentProvider and useContent are now imported from ./context/ContentContext
+// The sanitize function is also exported from ./components/Shared
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
-function Arrow({ size = 14, color = "currentColor" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="12" x2="12" y2="4" /><polyline points="6,4 12,4 12,10" />
-    </svg>
-  );
-}
-
-function useReveal(threshold = 0.15) {
-  const ref = useRef(null);
-  const [v, setV] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setV(true); obs.disconnect(); } }, { threshold });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return [ref, v];
-}
-
-function Reveal({ children, delay = 0, className = "", style = {} }) {
-  const [ref, vis] = useReveal();
-  return (
-    <div ref={ref} className={className} style={{ ...style, opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : "translateY(24px)", transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
+// Arrow, useReveal, Reveal, and sanitize are now imported from ./components/Shared
 
 /* ═══════════════════════════════════════════════════════════════
    SITE — NAVIGATION
@@ -960,7 +897,14 @@ function Router() {
 export default function App() {
   return (
     <>
-      <style>{`
+      <SEO 
+        title="Woo Tong | Digital Design Agency"
+        description="We craft premium digital experiences that elevate brands and transform businesses."
+        keywords="design, digital agency, branding, web development, AI, UX"
+        ogUrl="https://wootong.com"
+        ogType="website"
+      />
+      <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --font-serif: 'Instrument Serif', Georgia, serif; }
@@ -991,7 +935,7 @@ export default function App() {
           .admin-main { margin-left: 0 !important; }
           .admin-hamburger { display: block !important; }
         }
-      `}</style>
+      `}} />
       <ContentProvider>
         <Router />
       </ContentProvider>
