@@ -77,7 +77,7 @@ const DEFAULT_CONTENT = {
       { label: "Dribbble", href: "#" },
     ],
   },
-  adminPassword: "admin123",
+  adminPassword: "wootong1230@ae",
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -755,7 +755,7 @@ function AdminLogin({ onAuth }) {
         <input type="password" value={pw} onChange={e => { setPw(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && submit()} placeholder="Password" disabled={locked} style={{ ...inputSt, padding: "12px 16px", fontSize: 15, marginBottom: 16 }} autoFocus />
         {err && <p style={{ fontSize: 12, color: C.danger, marginBottom: 12 }}>{err}</p>}
         <button onClick={submit} disabled={locked} style={{ ...btnPrimary, width: "100%", padding: "12px", fontSize: 14, opacity: locked ? 0.5 : 1 }}>Sign In</button>
-        <p style={{ fontSize: 11, color: C.adminText, textAlign: "center", marginTop: 16, opacity: 0.6 }}>Default: admin123 — change in Security settings</p>
+        <p style={{ fontSize: 11, color: C.adminText, textAlign: "center", marginTop: 16, opacity: 0.6 }}>Enter your password to access the admin panel</p>
       </div>
     </div>
   );
