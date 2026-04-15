@@ -224,7 +224,7 @@ export function useAuth() {
       if (IS_PRODUCTION) {
         // For production, you should implement proper auth
         // This is a simple placeholder - replace with your own logic
-        if (password === 'admin123') {
+        if (password === 'wootong1230@ae') {
           setToken('production-token');
           setIsAuthenticated(true);
           localStorage.setItem('admin-token', 'production-token');
