@@ -116,18 +116,34 @@ npm start
 
 ## Environment Variables
 
-Create a `.env` file in the root directory:
+Copy `.env.example` → `.env` and fill in values:
 
 ```env
-VITE_API_URL=http://localhost:3001/api
 PORT=3001
 NODE_ENV=development
+
+# Strongly preferred: scrypt hash. Generate with `npm run hash:password`
+ADMIN_PASSWORD_HASH=scrypt$<salt>$<hash>
+# Dev-only plaintext fallback (leave blank in production)
+ADMIN_PASSWORD=
+
+# CORS — comma-separated origins allowed in production
+ALLOWED_ORIGINS=https://wootong.com
+
+VITE_API_URL=http://localhost:3001/api
+VITE_SITE_URL=https://wootong.com
 ```
 
-## Default Admin Credentials
+## Admin Credentials
 
-- **Password**: `admin123`
-- **Change this immediately** in the Security section of the admin panel!
+There is **no default password**. Generate a hash once and set it:
+
+```bash
+npm run hash:password
+# paste the output into .env as ADMIN_PASSWORD_HASH=...
+```
+
+If no `ADMIN_PASSWORD_HASH` or `ADMIN_PASSWORD` is set, the server will refuse logins (and refuse to start in production).
 
 ## SEO Features
 
@@ -201,15 +217,18 @@ Currently uses file-based storage. To upgrade to a database:
 2. Modify `server/index.js` to use database queries instead of file operations
 3. Add migration scripts for initial setup
 
-## Security Considerations
+## Security
 
-- ✅ Input sanitization to prevent XSS
-- ✅ Token-based authentication
-- ✅ Password protection for admin panel
-- ⚠️ For production: Move auth to server-side with JWT
-- ⚠️ For production: Use HTTPS (provided by most hosting platforms)
-- ⚠️ For production: Implement rate limiting
-- ⚠️ For production: Add CSRF protection
+- ✅ Input sanitization (XSS) + server-side validation on all writes
+- ✅ Scrypt-hashed admin password with timing-safe comparison
+- ✅ Crypto-random session tokens with 12h expiry + periodic cleanup
+- ✅ Rate limiting: 10 auth attempts / 15 min, 30 writes / min, 5 form submissions / min per IP
+- ✅ Security headers: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- ✅ Strict CORS allow-list in production (`ALLOWED_ORIGINS`)
+- ✅ Request body size capped (64KB; content writes 50KB)
+- ✅ Atomic writes to content file (tmp + rename)
+- ⚠️ Sessions are in-memory — for multi-instance deploys, swap for Redis/DB
+- ⚠️ Add CSRF protection if you later move off Bearer tokens to cookies
 
 ## Browser Support
 
