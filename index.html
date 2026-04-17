@@ -3,40 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Primary Meta Tags -->
-    <title>Woo Tong | Digital Design Agency - Premium Web Design & Development</title>
-    <meta name="title" content="Woo Tong | Digital Design Agency - Premium Web Design & Development" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Primary meta tags -->
+    <title>Woo Tong | Digital Design Agency — Premium Web Design & Development</title>
     <meta name="description" content="We craft premium digital experiences that elevate brands and transform businesses. Expert web design, development, branding, and AI solutions." />
     <meta name="keywords" content="design, digital agency, branding, web development, AI, UX, UI design, e-commerce, React, frontend" />
     <meta name="author" content="Woo Tong" />
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Open Graph / Facebook -->
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://wootong.com/" />
+    <meta property="og:site_name" content="Woo Tong" />
     <meta property="og:title" content="Woo Tong | Digital Design Agency" />
     <meta property="og:description" content="We craft premium digital experiences that elevate brands and transform businesses." />
     <meta property="og:image" content="/og-image.jpg" />
-    
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://wootong.com/" />
-    <meta property="twitter:title" content="Woo Tong | Digital Design Agency" />
-    <meta property="twitter:description" content="We craft premium digital experiences that elevate brands and transform businesses." />
-    <meta property="twitter:image" content="/og-image.jpg" />
-    
-    <!-- Additional SEO -->
-    <meta name="theme-color" content="#ebf4f5" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://wootong.com/" />
+    <meta name="twitter:title" content="Woo Tong | Digital Design Agency" />
+    <meta name="twitter:description" content="We craft premium digital experiences that elevate brands and transform businesses." />
+    <meta name="twitter:image" content="/og-image.jpg" />
+
+    <!-- Canonical + theme -->
+    <meta name="theme-color" content="#ebf4f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
+    <meta name="format-detection" content="telephone=no" />
     <link rel="canonical" href="https://wootong.com/" />
-    
-    <!-- Preconnect for performance -->
+
+    <!-- Client-side referrer hint. Primary security headers are sent by the server. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Font preconnects for perf -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" />
+
+    <style>
+      /* Prevent FOUC + give a sensible fallback before React mounts */
+      html, body { height: 100%; }
+      body { margin: 0; background: #ebf4f5; color: #1a1a2e; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      #root { min-height: 100%; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding:48px 24px;max-width:640px;margin:0 auto;text-align:center;font-family:system-ui,sans-serif">
+        <h1 style="font-size:24px;margin-bottom:12px">JavaScript required</h1>
+        <p>This site needs JavaScript to run. Please enable it and reload. For questions, email <a href="mailto:hello@wootong.com">hello@wootong.com</a>.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

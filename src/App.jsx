@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, Component } from "react";
 import { ContentProvider, useContent, useAuth } from "./context/ContentContext";
 import { SEO } from "./components/SEO";
-import { Arrow, Reveal, useReveal, sanitize, LoadingSpinner, Button, Card, Section, Container } from "./components/Shared";
+import { Arrow, Reveal, sanitize } from "./components/Shared";
 
 /* ═══════════════════════════════════════════════════════════════
    PALETTE
@@ -77,7 +77,6 @@ const DEFAULT_CONTENT = {
       { label: "Dribbble", href: "#" },
     ],
   },
-  adminPassword: "wootong1230@ae",
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -434,7 +433,7 @@ function SitePage() {
   return (
     <div style={{ overflowX: "hidden" }}>
       <Navigation />
-      <main>
+      <main id="main" tabIndex={-1}>
         <Hero />
         <Clients />
         <CaseStudies />
@@ -703,18 +702,27 @@ function FooterEditor({ data, set }) {
   );
 }
 
-function SecurityEditor({ data, set }) {
+function SecurityInfo({ apiAvailable }) {
+  const tips = apiAvailable
+    ? [
+        "Admin password is set via ADMIN_PASSWORD_HASH in the server .env — never in the browser.",
+        "Generate a new hash any time with: npm run hash:password",
+        "Auth tokens expire after 12 hours and are stored in localStorage.",
+        "Rate limiting: 10 login attempts per IP per 15 minutes.",
+        "Content writes are validated and size-capped server-side.",
+      ]
+    : [
+        "Offline mode: changes save to browser localStorage only — this device sees them, others don't.",
+        "For a shared CMS, run the Node server (npm run dev) or deploy to a host that supports Express.",
+        "Static hosts (Cloudflare Pages, Vercel static) have no backend — edits stay local.",
+      ];
   return (
-    <AdminCard title="Admin Security">
-      <Field label="Admin Password" value={data} onChange={set} type="password" />
-      <div style={{ padding: 14, borderRadius: 8, background: C.adminBg, border: `1px solid ${C.adminBorder}`, marginTop: 8 }}>
-        <p style={{ fontSize: 11, fontWeight: 600, color: C.adminAccent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Security Notes</p>
-        {[
-          "Content is stored in browser localStorage — each visitor has their own copy",
-          "For a shared CMS, connect to a backend API or KV store (e.g. Cloudflare KV)",
-          "Move admin auth to server-side (Workers + JWT) for production use",
-          "Enable HTTPS — Cloudflare Pages provides this by default",
-        ].map((tip, i) => (
+    <AdminCard title="Security">
+      <div style={{ padding: 14, borderRadius: 8, background: C.adminBg, border: `1px solid ${C.adminBorder}` }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: C.adminAccent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {apiAvailable ? "Server-backed admin" : "Local-only admin"}
+        </p>
+        {tips.map((tip, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 6 }}>
             <span style={{ color: C.adminAccent, fontSize: 10, marginTop: 3, flexShrink: 0 }}>●</span>
             <span style={{ fontSize: 12, color: C.adminText, lineHeight: 1.5 }}>{tip}</span>
@@ -726,37 +734,45 @@ function SecurityEditor({ data, set }) {
 }
 
 /* ═══ ADMIN LOGIN ═════════════════════════════════════════════ */
-function AdminLogin({ onAuth }) {
-  const { content } = useContent();
+function AdminLogin() {
+  const { login, loading } = useAuth();
+  const { apiAvailable } = useContent();
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [locked, setLocked] = useState(false);
 
-  const submit = () => {
-    if (locked) return;
-    if (attempts >= 5) { setLocked(true); setErr("Too many attempts. Refresh to try again."); return; }
-    if (pw === content.adminPassword) {
-      onAuth(true);
-    } else {
-      setAttempts(a => a + 1);
-      setErr(`Invalid password. ${4 - attempts} attempts remaining.`);
+  const submit = async (e) => {
+    e?.preventDefault();
+    if (!pw) return;
+    if (!apiAvailable) {
+      setErr("No backend detected. Start the server (npm run dev) to sign in.");
+      return;
     }
+    const res = await login(pw);
+    if (!res.success) setErr(res.error || "Login failed");
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.adminBg, padding: 24 }}>
-      <div style={{ width: "100%", maxWidth: 380, background: C.adminCard, borderRadius: 16, border: `1px solid ${C.adminBorder}`, padding: 32 }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.adminBg, padding: 24, fontFamily: "var(--font-sans)" }}>
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: 380, background: C.adminCard, borderRadius: 16, border: `1px solid ${C.adminBorder}`, padding: 32 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 20 }}>🔒</div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "#fff" }} aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          </div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: C.adminWhite, margin: 0 }}>Admin Panel</h1>
-          <p style={{ fontSize: 13, color: C.adminText, marginTop: 6 }}>Enter your password to continue</p>
+          <p style={{ fontSize: 13, color: C.adminText, marginTop: 6 }}>
+            {apiAvailable ? "Sign in to edit site content" : "Backend offline — edits will be local-only"}
+          </p>
         </div>
-        <input type="password" value={pw} onChange={e => { setPw(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && submit()} placeholder="Password" disabled={locked} style={{ ...inputSt, padding: "12px 16px", fontSize: 15, marginBottom: 16 }} autoFocus />
-        {err && <p style={{ fontSize: 12, color: C.danger, marginBottom: 12 }}>{err}</p>}
-        <button onClick={submit} disabled={locked} style={{ ...btnPrimary, width: "100%", padding: "12px", fontSize: 14, opacity: locked ? 0.5 : 1 }}>Sign In</button>
-        <p style={{ fontSize: 11, color: C.adminText, textAlign: "center", marginTop: 16, opacity: 0.6 }}>Enter your password to access the admin panel</p>
-      </div>
+        <label htmlFor="admin-pw" style={{ position: "absolute", left: -9999 }}>Password</label>
+        <input id="admin-pw" name="password" type="password" autoComplete="current-password" value={pw} onChange={e => { setPw(e.target.value); setErr(""); }} placeholder="Password" disabled={loading || !apiAvailable} style={{ ...inputSt, padding: "12px 16px", fontSize: 15, marginBottom: 16 }} autoFocus />
+        {err && <p role="alert" style={{ fontSize: 12, color: C.danger, marginBottom: 12 }}>{err}</p>}
+        <button type="submit" disabled={loading || !apiAvailable || !pw} style={{ ...btnPrimary, width: "100%", padding: "12px", fontSize: 14, opacity: (loading || !apiAvailable || !pw) ? 0.5 : 1 }}>
+          {loading ? "Signing in…" : "Sign In"}
+        </button>
+        <p style={{ fontSize: 11, color: C.adminText, textAlign: "center", marginTop: 16, opacity: 0.6 }}>
+          Password is set server-side via <code style={{ fontFamily: "var(--font-mono)" }}>ADMIN_PASSWORD_HASH</code>
+        </p>
+      </form>
     </div>
   );
 }
@@ -777,32 +793,54 @@ const adminSections = [
 ];
 
 function AdminPanel() {
-  const { content, save } = useContent();
-  const [authed, setAuthed] = useState(false);
+  const { content, saveContent, apiAvailable } = useContent();
+  const { isAuthenticated, token, logout, verify } = useAuth();
   const [section, setSection] = useState("seo");
   const [draft, setDraft] = useState(content);
   const [toast, setToast] = useState(null);
   const [mobileNav, setMobileNav] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
-  useEffect(() => { setDraft(content); }, [content]);
+  useEffect(() => { setDraft(content); setDirty(false); }, [content]);
+
+  useEffect(() => {
+    if (isAuthenticated) verify();
+  }, [isAuthenticated, verify]);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2500);
+  };
 
   const doSave = async () => {
-    await save(draft);
-    setToast({ message: "Changes saved!", type: "success" });
-    setTimeout(() => setToast(null), 2500);
+    if (saving) return;
+    setSaving(true);
+    const res = await saveContent(draft, token);
+    setSaving(false);
+    if (res.success) {
+      setDirty(false);
+      showToast(res.local ? "Saved locally" : "Changes saved");
+    } else {
+      showToast(res.error || "Save failed", "danger");
+    }
   };
 
   const doReset = async () => {
     if (!confirm("Reset ALL content to defaults? This cannot be undone.")) return;
-    await save(DEFAULT_CONTENT);
-    setDraft(DEFAULT_CONTENT);
-    setToast({ message: "Reset to defaults", type: "success" });
-    setTimeout(() => setToast(null), 2500);
+    const res = await saveContent(DEFAULT_CONTENT, token);
+    if (res.success) {
+      setDraft(DEFAULT_CONTENT);
+      setDirty(false);
+      showToast("Reset to defaults");
+    } else {
+      showToast(res.error || "Reset failed", "danger");
+    }
   };
 
-  if (!authed) return <AdminLogin onAuth={setAuthed} />;
+  if (apiAvailable && !isAuthenticated) return <AdminLogin />;
 
-  const setField = (key) => (val) => setDraft(d => ({ ...d, [key]: val }));
+  const setField = (key) => (val) => { setDraft(d => ({ ...d, [key]: val })); setDirty(true); };
 
   const renderEditor = () => {
     switch (section) {
@@ -816,30 +854,39 @@ function AdminPanel() {
       case "about": return <AboutEditor data={draft.about} set={setField("about")} />;
       case "contact": return <ContactEditor data={draft.contact} set={setField("contact")} />;
       case "footer": return <FooterEditor data={draft.footer} set={setField("footer")} />;
-      case "security": return <SecurityEditor data={draft.adminPassword} set={v => setDraft(d => ({ ...d, adminPassword: v }))} />;
+      case "security": return <SecurityInfo apiAvailable={apiAvailable} />;
       default: return null;
     }
   };
 
   const currentSection = adminSections.find(s => s.id === section);
+  const statusColor = apiAvailable ? C.success : "#f5a623";
+  const statusText = apiAvailable ? (isAuthenticated ? "Connected" : "Offline") : "Local only";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.adminBg }}>
-      <aside className="admin-sidebar" style={{ width: 240, background: C.adminSidebar, borderRight: `1px solid ${C.adminBorder}`, padding: "20px 0", flexShrink: 0, display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 40, overflowY: "auto" }}>
-        <div style={{ padding: "0 20px", marginBottom: 28 }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: C.adminBg, fontFamily: "var(--font-sans)" }}>
+      <aside className="admin-sidebar" aria-label="Admin navigation" style={{ width: 240, background: C.adminSidebar, borderRight: `1px solid ${C.adminBorder}`, padding: "20px 0", flexShrink: 0, display: "flex", flexDirection: "column", position: "fixed", top: 0, bottom: 0, left: 0, zIndex: 40, overflowY: "auto" }}>
+        <div style={{ padding: "0 20px", marginBottom: 16 }}>
           <a href="#/" style={{ fontSize: 14, fontWeight: 600, color: C.adminAccent, textDecoration: "none" }}>← Back to site</a>
+        </div>
+        <div style={{ padding: "0 20px 16px", display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.adminText }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusColor, boxShadow: `0 0 0 3px ${statusColor}22` }} />
+          {statusText}
         </div>
         <div style={{ padding: "0 12px", flex: 1 }}>
           {adminSections.map(s => (
             <button key={s.id} onClick={() => { setSection(s.id); setMobileNav(false); }}
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", borderRadius: 8, border: "none", background: section === s.id ? `${C.adminAccent}18` : "transparent", color: section === s.id ? C.adminAccent : C.adminText, fontSize: 13, fontWeight: section === s.id ? 600 : 400, cursor: "pointer", textAlign: "left", transition: "all 0.15s", marginBottom: 2 }}>
-              <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>{s.icon}</span>
+              <span style={{ fontSize: 14, width: 20, textAlign: "center" }} aria-hidden="true">{s.icon}</span>
               {s.label}
             </button>
           ))}
         </div>
-        <div style={{ padding: "16px 20px", borderTop: `1px solid ${C.adminBorder}` }}>
+        <div style={{ padding: "16px 20px", borderTop: `1px solid ${C.adminBorder}`, display: "flex", flexDirection: "column", gap: 8 }}>
           <button onClick={doReset} style={{ ...btnGhost, width: "100%", fontSize: 12, padding: "8px", color: C.danger, borderColor: `${C.danger}44` }}>Reset to Defaults</button>
+          {isAuthenticated && (
+            <button onClick={logout} style={{ ...btnGhost, width: "100%", fontSize: 12, padding: "8px" }}>Sign out</button>
+          )}
         </div>
       </aside>
 
@@ -847,12 +894,12 @@ function AdminPanel() {
         <div style={{ position: "fixed", inset: 0, zIndex: 50, background: C.adminSidebar, padding: 20, overflowY: "auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <span style={{ fontSize: 15, fontWeight: 600, color: C.adminWhite }}>Sections</span>
-            <button onClick={() => setMobileNav(false)} style={{ background: "none", border: "none", color: C.adminText, fontSize: 20, cursor: "pointer" }}>✕</button>
+            <button onClick={() => setMobileNav(false)} aria-label="Close menu" style={{ background: "none", border: "none", color: C.adminText, fontSize: 20, cursor: "pointer" }}>✕</button>
           </div>
           {adminSections.map(s => (
             <button key={s.id} onClick={() => { setSection(s.id); setMobileNav(false); }}
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px", borderRadius: 8, border: "none", background: section === s.id ? `${C.adminAccent}18` : "transparent", color: section === s.id ? C.adminAccent : C.adminText, fontSize: 14, cursor: "pointer", textAlign: "left", marginBottom: 2 }}>
-              <span style={{ fontSize: 14, width: 20, textAlign: "center" }}>{s.icon}</span>
+              <span style={{ fontSize: 14, width: 20, textAlign: "center" }} aria-hidden="true">{s.icon}</span>
               {s.label}
             </button>
           ))}
@@ -865,12 +912,17 @@ function AdminPanel() {
       <main className="admin-main" style={{ flex: 1, marginLeft: 240 }}>
         <div style={{ position: "sticky", top: 0, zIndex: 30, background: `${C.adminBg}ee`, backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.adminBorder}`, padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button className="admin-hamburger" onClick={() => setMobileNav(true)} style={{ background: "none", border: "none", color: C.adminText, fontSize: 20, cursor: "pointer", display: "none", padding: 4 }}>☰</button>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: C.adminWhite, margin: 0 }}>{currentSection?.icon} {currentSection?.label}</h2>
+            <button className="admin-hamburger" onClick={() => setMobileNav(true)} aria-label="Open menu" style={{ background: "none", border: "none", color: C.adminText, fontSize: 20, cursor: "pointer", display: "none", padding: 4 }}>☰</button>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: C.adminWhite, margin: 0 }}>
+              <span aria-hidden="true">{currentSection?.icon}</span> {currentSection?.label}
+            </h2>
+            {dirty && <span style={{ fontSize: 11, color: "#f5a623", padding: "3px 8px", borderRadius: 999, background: "#f5a62322" }}>Unsaved</span>}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <a href="#/" style={{ ...btnGhost, textDecoration: "none", fontSize: 12, padding: "8px 16px" }}>Preview</a>
-            <button onClick={doSave} style={{ ...btnPrimary, fontSize: 12, padding: "8px 20px" }}>Save Changes</button>
+            <button onClick={doSave} disabled={saving || !dirty} style={{ ...btnPrimary, fontSize: 12, padding: "8px 20px", opacity: (saving || !dirty) ? 0.5 : 1, cursor: (saving || !dirty) ? "default" : "pointer" }}>
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
           </div>
         </div>
         <div style={{ padding: 28, maxWidth: 720 }}>{renderEditor()}</div>
@@ -883,7 +935,7 @@ function AdminPanel() {
 
 /* ═══ ROUTER ══════════════════════════════════════════════════ */
 function Router() {
-  const [route, setRoute] = useState(window.location.hash || "#/");
+  const [route, setRoute] = useState(() => (typeof window !== "undefined" ? window.location.hash : "#/") || "#/");
   useEffect(() => {
     const h = () => setRoute(window.location.hash || "#/");
     window.addEventListener("hashchange", h);
@@ -893,11 +945,32 @@ function Router() {
   return <SitePage />;
 }
 
+/* ═══ ERROR BOUNDARY ══════════════════════════════════════════ */
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("App error:", error, info); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div role="alert" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: C.bg, color: C.fg, fontFamily: "var(--font-sans)" }}>
+        <div style={{ maxWidth: 480, textAlign: "center" }}>
+          <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 28, fontWeight: 400, marginBottom: 12 }}>Something went wrong</h1>
+          <p style={{ fontSize: 14, color: C.mutedFg, marginBottom: 24 }}>An unexpected error occurred. Try refreshing the page.</p>
+          <button onClick={() => window.location.reload()} style={{ background: C.fg, color: C.bg, border: "none", padding: "12px 24px", borderRadius: 999, fontSize: 14, cursor: "pointer" }}>
+            Reload
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
 /* ═══ APP ═════════════════════════════════════════════════════ */
 export default function App() {
   return (
     <>
-      <SEO 
+      <SEO
         title="Woo Tong | Digital Design Agency"
         description="We craft premium digital experiences that elevate brands and transform businesses."
         keywords="design, digital agency, branding, web development, AI, UX"
@@ -905,12 +978,21 @@ export default function App() {
         ogType="website"
       />
       <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --font-serif: 'Instrument Serif', Georgia, serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+          --font-serif: 'Instrument Serif', Georgia, serif;
+          --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+          --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
         html { scroll-behavior: smooth; }
-        body { -webkit-font-smoothing: antialiased; }
+        body { -webkit-font-smoothing: antialiased; font-family: var(--font-sans); color: ${C.fg}; background: ${C.bg}; }
         ::selection { background: ${C.primary}33; }
+        button, input, textarea { font-family: inherit; }
+        :focus-visible { outline: 2px solid ${C.primary}; outline-offset: 2px; border-radius: 4px; }
+
+        .skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; background: ${C.fg}; color: ${C.bg}; padding: 10px 16px; border-radius: 0 0 8px 0; text-decoration: none; font-size: 13px; }
+        .skip-link:focus { left: 0; }
 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes heroIn { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
@@ -922,11 +1004,7 @@ export default function App() {
         .hero-anim-1 { animation: heroIn 0.9s ease 0.1s both; }
         .hero-anim-2 { animation: heroIn 0.9s ease 0.35s both; }
 
-        .footer-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr;
-          gap: 40px;
-        }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
 
         @media (max-width: 768px) {
           .hide-mobile { display: none !important; }
@@ -935,10 +1013,22 @@ export default function App() {
           .admin-main { margin-left: 0 !important; }
           .admin-hamburger { display: block !important; }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        }
       `}} />
-      <ContentProvider>
-        <Router />
-      </ContentProvider>
+      <a href="#main" className="skip-link">Skip to content</a>
+      <ErrorBoundary>
+        <ContentProvider>
+          <Router />
+        </ContentProvider>
+      </ErrorBoundary>
     </>
   );
 }
